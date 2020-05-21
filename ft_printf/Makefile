@@ -5,47 +5,51 @@
 #                                                     +:+ +:+         +:+      #
 #    By: bpole <marvin@42.fr>                       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2019/10/11 10:08:31 by bpole             #+#    #+#              #
-#    Updated: 2019/12/19 01:06:17 by bpole            ###   ########.fr        #
+#    Created: 2019/09/07 12:11:32 by bpole             #+#    #+#              #
+#    Updated: 2019/10/23 19:01:45 by bpole            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-NAME = lem-in
+NAME = libftprintf.a
 
-LIB_DIR = ./ft_printf/
-
-LIBFT = $(LIB_DIR)libftprintf.a
-
-SRC = ant_moves.c bfs.c bresenhem.c control.c find_way.c free_all.c \
-      lib_connect.c lib_room.c main.c mouse_press.c parse.c parse_link.c \
-      parse_rooms.c print_result.c render.c render_menu.c transform.c utils.c \
-      valid_links.c valid_rooms.c valid_rooms2.c
+SRC = ft_printf.c \
+      ft_fprintf.c \
+	  parser.c \
+	  output_c_s.c \
+	  output_u.c \
+	  output_i_d.c \
+	  output_p.c \
+	  output_persent.c \
+	  output_o.c \
+	  output_x.c \
+	  output_f.c \
+	  bonus_wildcard.c \
 
 OBJ = $(SRC:.c=.o)
 
-INCLUDE = ./
-
-CC = gcc
-
 FLAGS = -Wall -Wextra -Werror
 
-FRAEM = -lmlx -framework OpenGL -framework AppKit
+LIBFT = ./libft/
+
+HEAD = ft_printf.h
 
 all: $(NAME)
 
-%.o: %.c
-	$(CC) -c $(FLAGS) $<
-
 $(NAME): $(OBJ)
-	$(MAKE) -C $(LIB_DIR)
-	$(CC) $(FLAGS) -o $(NAME) $(OBJ) $(LIBFT) $(FRAEM)
+	$(MAKE) -C $(LIBFT)
+	cp libft/libft.a ./$(NAME)
+	ar rc $(NAME) $(OBJ)
+	ranlib $(NAME)
+
+%.o: %.c
+	gcc $(FLAGS) -I $(HEAD) -o $@ -c $<
 
 clean:
+	$(MAKE) clean -C $(LIBFT)
 	rm -rf $(OBJ)
-	$(MAKE) -C $(LIB_DIR) clean
 
 fclean: clean
+	$(MAKE) fclean -C $(LIBFT)
 	rm -rf $(NAME)
-	$(MAKE) -C $(LIB_DIR) fclean
 
 re: fclean all

@@ -3,93 +3,69 @@
 /*                                                        :::      ::::::::   */
 /*   valid_rooms.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: wtorwold <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: bpole <marvin@42.fr>                       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2019/12/10 18:24:02 by wtorwold          #+#    #+#             */
-/*   Updated: 2019/12/10 19:11:15 by wtorwold         ###   ########.fr       */
+/*   Created: 2019/12/19 00:58:56 by bpole             #+#    #+#             */
+/*   Updated: 2019/12/20 17:13:11 by bpole            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "lem-in.h"
+#include "lem_in.h"
 
-void		check_star_end(t_lem_in *lem_in)
+static void		check_l_or_hash_in_name(char c)
 {
-	int			start;
-	int			end;
-	t_rooms		*temp;
-
-	temp = lem_in->rooms;
-	start = 0;
-	end = 0;
-	while (temp)
-	{
-		if (temp->type == 1)
-			start++;
-		if (temp->type == 2)
-			end++;
-		temp = temp->next;
-	}
-	if (start < 1 || end < 1)
-		ft_error("Start or end less than 1");
-	if (start > 1 || end > 1)
-		ft_error("Start or end more than 1");
+	if (c == 'L')
+		ft_error("ERROR: Name begins whith L");
+	if (c == '#')
+		ft_error("ERROR: Name begins whith #");
 }
 
-void		check_coords(t_lem_in *lem_in)
+static int		valid_rooms_while(char **str, int i, int j)
 {
-	int			x;
-	int			y;
-	int			i;
-	t_rooms		*temp;
-	t_rooms		*cpy;
+	int			c;
 
-	cpy = lem_in->rooms;
-	while (cpy)
+	c = i;
+	while (j < c)
 	{
 		i = 0;
-		temp = lem_in->rooms;
-		x = cpy->x;
-		y = cpy->y;
-		while (temp)
+		while (str[j][i])
 		{
-			if (temp->x == x && temp->y == y)
+			if (ft_isdigit(str[j][i]) || str[j][0] == '-')
 				i++;
-			temp = temp->next;
+			else
+			{
+				ft_free_char_arr(&str);
+				return (0);
+			}
 		}
-		if (i > 1)
-			ft_error("Error - duplicate cooards");
-		cpy = cpy->next;
+		j++;
 	}
+	return (1);
 }
 
-void        check_name(t_lem_in *lem_in)
+char			**valid_rooms(t_lem *lem)
 {
-	char		*str;
+	char		**str;
 	int			i;
-	t_rooms     *temp;
-	t_rooms     *cpy;
+	int			j;
 
-	cpy = lem_in->rooms;
-	while (cpy)
+	i = 0;
+	j = 1;
+	str = ft_strsplit(lem->line, ' ');
+	while (str[i] != NULL)
+		i++;
+	if (i != 3 && lem->v == 0)
 	{
-		i = 0;
-		temp = lem_in->rooms;
-		str = cpy->name;
-		while (temp)
-		{
-			if (ft_strcmp(str, temp->name) == 0)
-				i++;
-			temp = temp->next;
-		}
-		if (i > 1)
-			ft_error("Error - duplicate name");
-		cpy = cpy->next;
+		ft_free_char_arr(&str);
+		return (NULL);
 	}
+	else if (i != 4 && lem->v == 1)
+	{
+		ft_free_char_arr(&str);
+		return (NULL);
+	}
+	if (!valid_rooms_while(str, i, j))
+		return (NULL);
+	check_l_or_hash_in_name(str[0][0]);
+	return (str);
 }
-
-void		valid_rooms2(t_lem_in *lem_in)
-{
-	check_star_end(lem_in);
-	check_coords(lem_in);
-	check_name(lem_in);
-}	

@@ -1,132 +1,117 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   parse.c                                            :+:      :+:    :+:   */
+/*   parse_rooms.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: wtorwold <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: bpole <marvin@42.fr>                       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2019/12/09 16:04:04 by wtorwold          #+#    #+#             */
-/*   Updated: 2019/12/10 19:37:56 by wtorwold         ###   ########.fr       */
+/*   Created: 2019/12/19 00:56:56 by bpole             #+#    #+#             */
+/*   Updated: 2019/12/19 20:44:42 by bpole            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "lem-in.h"
+#include "lem_in.h"
 
-void				check_L_or_hash_in_name(char c)
+static void		init_size(t_lem *lem, t_rooms *new, char **str)
 {
-	if (c == 'L')
-		ft_error("Error - Name begins whith L");
-	if (c == '#')
-		ft_error("Error - Name begins whith #");
+	new->x = ft_atoi(str[1]);
+	lem->max_x = (new->x > lem->max_x ? new->x : lem->max_x);
+	lem->min_x = (new->x < lem->min_x ? new->x : lem->min_x);
+	new->y = ft_atoi(str[2]);
+	lem->max_y = (new->y > lem->max_y ? new->y : lem->max_y);
+	lem->min_y = (new->y < lem->min_y ? new->y : lem->min_y);
+	if (lem->v == 1)
+	{
+		new->z = ft_atoi(str[3]);
+		lem->max_z = (new->z > lem->max_z ? new->z : lem->max_z);
+		lem->min_z = (new->z < lem->min_z ? new->z : lem->min_z);
+	}
 }
 
-static char			**valid_rooms(char *line)
-{
-	char **str;
-	int i;
-	int j;
-
-	i = 0;
-	j = 1;
-	str = ft_strsplit(line, ' ');
-	while (str[i] != NULL)
-		i++;
-	if (i != 3)
-	{
-		ft_free_split(str);
-		return( NULL); 
-	}
-	while (j < 3)
-	{
-		i = 0;
-		while (str[j][i])
-		{
-			if (ft_isdigit(str[j][i]) || str[j][0] == '-')
-				i++;
-			else
-			{
-				ft_free_split(str);
-				return (NULL);
-			}
-		}
-		j++;
-	}
-	check_L_or_hash_in_name(str[0][0]);
-	return (str);
-}
-
-t_rooms			*creat_room(char **str, int type)
+static t_rooms	*creat_room(t_lem *lem, char **str, int type)
 {
 	t_rooms		*new;
-	
-	if ((new = (t_rooms *)malloc(sizeof(t_rooms))) == NULL)
-		ft_error("error of malloc");
+
+	(void)lem;
+	if ((new = (t_rooms *)ft_memalloc(sizeof(t_rooms))) == NULL)
+		ft_error("ERROR: of malloc");
 	new->name = ft_strjoin("", str[0]);
-	new->x = ft_atoi(str[1]);
-	new->y = ft_atoi(str[2]);
+	init_size(lem, new, str);
 	new->type = type;
-	new->next = NULL;
-	new->type = type;
+	if (type == 1)
+	{
+		lem->start = new;
+		new->bfs = 0;
+	}
+	else if (type == 2)
+	{
+		lem->end = new;
+		new->bfs = INT_MAX;
+	}
+	else
+		new->bfs = -1;
 	return (new);
 }
 
-void			add_room(t_lem_in *lem_in, char *line, int type)
+static void		add_room(t_lem *lem, int type)
 {
 	char		**str;
 	t_rooms		*cpy;
-	t_rooms		*p;
 
-	cpy = lem_in->rooms;
-	if ((str = valid_rooms(line)) == NULL)
-		ft_error("Error in room");
-	free(line);
-	if (lem_in->rooms == NULL)
-	{
-			lem_in->rooms = creat_room(str, type);
-			p = lem_in->rooms;
-	}
+	cpy = lem->rooms;
+	if ((str = valid_rooms(lem)) == NULL)
+		ft_error("ERROR: in room");
+	lem->line = NULL;
+	if (lem->rooms == NULL)
+		lem->rooms = creat_room(lem, str, type);
 	else
 	{
-		while(cpy->next != NULL)
+		while (cpy->next != NULL)
 			cpy = cpy->next;
-		cpy->next = creat_room(str, type);
-		p = cpy->next;
+		cpy->next = creat_room(lem, str, type);
 	}
-	ft_free_split(str);
+	ft_free_char_arr(&str);
 }
 
-void			add_start_end_room(t_lem_in *lem_in, char *line, int type, int fd)
+static	void	add_start_end_room(t_lem *lem, int type)
 {
 	int			gnl;
 
-	free (line);
-	if ((gnl = read_file(fd, &line)) > 0)
-		add_room(lem_in, line, type);
+	lem->line = NULL;
+	gnl = ft_read_file(lem);
+	if (!gnl)
+		ft_error("ERROR: no line after start or end command");
+	if (ft_hash(lem->line) == 0)
+		add_room(lem, type);
 	else
-		ft_error("Error in start or end room");
-}	
+		ft_error("ERROR: in start or end room");
+}
 
-char			*parse_rooms(int fd, char *line, t_lem_in *lem_in)
+void			parse_rooms(t_lem *lem)
 {
+	int			type;
+	char		**str;
 	int			gnl;
-	t_rooms		rooms;
-	int type;
 
-	while ((gnl = read_file(fd, &line)) > 0)
+	while ((gnl = ft_read_file(lem) > 0))
 	{
-		type = ft_hash(line);
-		if (type == -1 && valid_rooms(line) == NULL)
+		type = ft_hash(lem->line);
+		if (type == -1 && ((str = valid_rooms(lem)) == NULL))
 		{
-			free(line);
+			ft_free_char_arr(&str);
+			lem->line = NULL;
 			continue ;
 		}
-		else if (type == 1)
-			add_start_end_room(lem_in, line, type, fd);
-		else if (type == 2)
-			add_start_end_room(lem_in, line, type, fd);
-		else if (type == 0 && valid_rooms(line) != NULL)
-			add_room(lem_in, line, type);
-		else break ;
+		else if (type == 1 || type == 2)
+			add_start_end_room(lem, type);
+		else if (type == 0 && ((str = valid_rooms(lem)) != NULL))
+		{
+			ft_free_char_arr(&str);
+			add_room(lem, type);
+		}
+		else
+			break ;
 	}
-	return (line);
+	if (gnl <= 0)
+		ft_error("ERROR: no links");
 }

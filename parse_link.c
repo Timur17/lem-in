@@ -6,57 +6,71 @@
 /*   By: wtorwold <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/12/10 20:43:35 by wtorwold          #+#    #+#             */
-/*   Updated: 2019/12/10 21:19:17 by wtorwold         ###   ########.fr       */
+/*   Updated: 2019/12/20 17:06:54 by bpole            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "lem-in.h"
+#include "lem_in.h"
 
-void			check_incorrect_chars(char *line)
+static int		check_comment_links(char *line)
 {
-	int 		i;
+	int			res;
 
-	i = 0;
-	while (line[i + 1])
+	res = ft_hash(line);
+	if (res == -1)
+		return (-1);
+	else if (res == 1 || res == 2)
 	{
-		if (line[i] == '-' && line[i + 1] == '-')
-			ft_error("Error charecter in links");
-		i++;
+		ft_error("ERROR - start or end includes in links");
+		return (-3);
 	}
-
+	else
+		return (0);
 }
 
-char			**valid_links(char *line)
+static void		check_duplicate_links(t_links *links)
 {
-	char		**str;
+	t_links		*cpy;
+	t_links		*temp;
 	int			i;
-	int			j;
+	int			l;
 
-	i = 0;
-	check_incorrect_chars(line);
-	str = ft_strsplit(line, '-');
-	free(line);
-	while (str[i] != NULL)
-		i++;
-	if (i != 2)
+	cpy = links;
+	while (cpy)
 	{
-		ft_free_split(str);
-		ft_error("Error in link");
-		return (NULL);
+		i = 0;
+		l = 0;
+		temp = links;
+		while (temp)
+		{
+			if (ft_strcmp(cpy->begin, temp->begin) == 0 &&
+			ft_strcmp(cpy->finish, temp->finish) == 0)
+				i++;
+			if (ft_strcmp(cpy->begin, temp->finish) == 0 &&
+			ft_strcmp(cpy->finish, temp->begin) == 0)
+				l++;
+			temp = temp->next;
+		}
+		if (i > 1 || l > 0)
+			ft_error("Error - Dublicate link's line");
+		cpy = cpy->next;
 	}
-	return (str);
 }
 
-void			parse_links(int fd, char *line, t_lem_in *lem_in)
+void			parse_links(t_lem *lem)
 {
-	int			gnl;
-
-	gnl = 0;
-	valid_links(line);
-	printf ("%s\n", line);
-	while ((gnl = read_file(fd, &line)) > 0)
+	if (check_comment_links(lem->line) == -1)
+		lem->line = NULL;
+	else
+		add_links(lem);
+	while (ft_read_file(lem) > 0)
 	{
-		printf ("%s\n", line);
-		valid_links(line);
+		if (ft_hash(lem->line) == -1)
+		{
+			lem->line = NULL;
+			continue ;
+		}
+		add_links(lem);
 	}
+	check_duplicate_links(lem->links);
 }

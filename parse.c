@@ -6,88 +6,73 @@
 /*   By: wtorwold <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/12/09 16:04:04 by wtorwold          #+#    #+#             */
-/*   Updated: 2019/12/10 20:43:11 by wtorwold         ###   ########.fr       */
+/*   Updated: 2019/12/20 23:57:44 by bpole            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "lem-in.h"
+#include "lem_in.h"
 
-int				read_file(int fd, char **line)
+int				ft_read_file(t_lem *lem)
 {
 	int			gnl;
 
-
-	if ((gnl = get_next_line(fd, line)) == -1)
-		ft_error("Error reading");
+	if ((gnl = get_next_line(lem->fd, &lem->line)) == -1)
+		ft_error("ERROR: reading");
+	if (gnl)
+		ft_save_push_back(&lem->save, ft_save_new(lem->line));
 	return (gnl);
 }
 
-int				parse_ants(char *line)
+static void		parse_ants(t_lem *lem)
 {
 	int			i;
-	int			ants;
+	int			num;
 
 	i = 0;
-	while(line[i])
+	if (lem->line[i] == '+')
+		i++;
+	while (lem->line[i])
 	{
-		if (ft_isdigit(line[i]))
+		if (ft_isdigit(lem->line[i]))
 			i++;
 		else
-			ft_error("Error map in ants");
+			ft_error("ERROR: ant");
 	}
-	ants = ft_atoi(line);
-	free(line);
-	if (ants == 0)
-		ft_error("Error map in ants");	
-	return (ants);
-}
-
-int				check_comment(char *line)
-{
-	if (ft_strcmp(line, "#") == 0)
-		return (-1);
-	else if (line[0] == '#' && line[1] == '#' && (ft_strcmp(line + 2, "start") != 0  && ft_strcmp(line + 2, "end") != 0))
-		return (-1);
-	return (1);
+	num = ft_atoi(lem->line);
+	lem->line = NULL;
+	if (num <= 0 || i > 10)
+		ft_error("ERROR: ant");
+	lem->ants = num;
 }
 
 int				ft_hash(char *line)
 {
-	if (check_comment(line) == -1)
-	{
-		ft_error("Error in comment 2");
-		return (-3);
-	}
-	else if (line[0] == '#' && line[1] != '#')
-		return (-1);
-	else if (ft_strcmp(line, "##start") == 0)
+	if (ft_strcmp(line, "##start") == 0)
 		return (1);
 	else if (ft_strcmp(line, "##end") == 0)
 		return (2);
+	else if (line[0] == '#' || (line[0] == '#' && line[1] == '#'))
+		return (-1);
 	else
 		return (0);
 }
 
-void			parse_file(int fd, t_lem_in *lem_in)
+static void		count_size(t_data *data)
 {
-	char		*line;
+	data->width = data->lem->max_x - data->lem->min_x;
+	data->height = data->lem->max_y - data->lem->min_y;
+	data->camera->zoom = FT_MIN(WIDTH / data->width / 2,
+			HEIGHT / data->height / 2);
+}
 
-	read_file(fd, &line);
-	lem_in->ants = parse_ants(line);
-	line = parse_rooms(fd, line, lem_in); 
-	valid_rooms2(lem_in);
-	parse_links(fd, line, lem_in);
-	t_rooms *temp;
-	temp = lem_in->rooms;
-	while (temp)
-	{
-		if (temp->type == 1)
-			printf("start ");
-		if (temp->type == 2)
-			printf("end ");
-		printf("%s %d %d\n", temp->name, temp->x, temp->y);
-		temp = temp->next;
-	}
-	printf ("%s\n", line);
-	ft_free_rooms(lem_in->rooms);
+void			ft_parse_file(t_data *data)
+{
+	if (!ft_read_file(data->lem))
+		ft_error("ERROR: first line is empty");
+	parse_ants(data->lem);
+	parse_rooms(data->lem);
+	valid_rooms2(data->lem);
+	parse_links(data->lem);
+	if (data->lem->v)
+		count_size(data);
 }
