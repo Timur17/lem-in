@@ -10,3 +10,4 @@
 4.	Конец лабиринта - End room.
 5.	Связи со всеми комнатами, которые у нас есть. Примеры карт можно найти в директории maps. 
 
+Подробнее о проекте можно почитать в [Subject](https://github.com/Timur17/lem-in/blob/master/subject_lem-in.en.pdf)
